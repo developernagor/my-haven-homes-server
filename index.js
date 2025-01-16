@@ -24,7 +24,7 @@ app.use(cookieParser());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7oyvz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -80,8 +80,60 @@ async function run() {
       res.send(result)
     })
 
-   
-    
+    app.get('/properties/:email', async(req,res) => {
+      const email = req.params.email;
+      const query = {agentEmail: email}
+      const result = await propertiesCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
+    // Get property by ID
+    app.get('/all-properties/:id', async(req,res)=>{
+      const id = req.params.id;
+      try {
+        const result = await propertiesCollection.findOne({ _id: new ObjectId(id) });
+        if (!result) {
+            return res.status(404).send({ message: 'Property not found' });
+        }
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: 'Error fetching property', error });
+    }
+    })
+
+    app.post('/wishlist', async (req, res) => {
+      const wishlistItem = req.body;
+      try {
+          const result = await db.collection('wishlist').insertOne(wishlistItem);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ message: 'Error adding to wishlist', error });
+      }
+  });
+
+
+  app.post('/reviews', async (req, res) => {
+    const review = req.body;
+    try {
+        const result = await reviewsCollection.insertOne(review);
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: 'Error adding review', error });
+    }
+});
+
+  app.get('/reviews/:propertyId', async (req, res) => {
+    const propertyId = req.params.propertyId;
+    const query = {propertyId}
+    try {
+        const result = await reviewsCollection.find(query).toArray();
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: 'Error fetching reviews', error });
+    }
+});
+
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
