@@ -61,6 +61,12 @@ async function run() {
     res.send(result)
     })
 
+     // Get users data from db
+     app.get('/users', async(req,res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result)
+    })
+
     // Save Property Data in db
     app.post('/properties', async(req,res) => {
       const property = req.body;
@@ -68,11 +74,13 @@ async function run() {
       res.send(result)
     })
 
-    // Get users data from db
-    app.get('/users', async(req,res) => {
-      const result = await usersCollection.find().toArray();
+    // Get Property data from db
+    app.get('/properties', async(req,res) => {
+      const result = await propertiesCollection.find().toArray()
       res.send(result)
     })
+
+   
     
 
     // Connect the client to the server	(optional starting in v4.7)
