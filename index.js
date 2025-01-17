@@ -155,7 +155,7 @@ app.get('/reviews', async (req, res) => {
 });
 
 // Update property
-app.patch('/update-property/:id', async(req,res)=>{
+app.patch('/dashboard/update-property/:id', async(req,res)=>{
   const id= req.params.id;
   const property = req.body;
   const query = {_id: new ObjectId(id)};
@@ -164,7 +164,6 @@ app.patch('/update-property/:id', async(req,res)=>{
     $set: {
       title: property?.title,
       location: property?.location,
-      image: property?.image,
       description: property?.description,
       minimumPrice: property?.minimumPrice,
       maximumPrice: property?.maximumPrice
@@ -183,6 +182,29 @@ app.patch('/update-property/:id', async(req,res)=>{
     res.status(500).send({ error: 'Failed to update property' });
   }
 })
+
+app.get('/update-property/:id', async(req,res) => {
+  const id= req.params.id;
+  const query = {id}
+  const result = await propertiesCollection.findOne(query);
+  res.send(result)
+})
+
+
+// Delete Property
+app.delete('/properties/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await propertiesCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.status(200).send({ message: 'Property deleted successfully.' });
+    } else {
+      res.status(404).send({ message: 'Property not found.' });
+    }
+  } catch (error) {
+    res.status(500).send({ message: 'Error deleting property.', error });
+  }
+});
 
 
     // Connect the client to the server	(optional starting in v4.7)
