@@ -154,6 +154,36 @@ app.get('/reviews', async (req, res) => {
     }
 });
 
+// Update property
+app.patch('/update-property/:id', async(req,res)=>{
+  const id= req.params.id;
+  const property = req.body;
+  const query = {_id: new ObjectId(id)};
+
+  const update = {
+    $set: {
+      title: property?.title,
+      location: property?.location,
+      image: property?.image,
+      description: property?.description,
+      minimumPrice: property?.minimumPrice,
+      maximumPrice: property?.maximumPrice
+    }
+  }
+  try{
+    const result = await propertiesCollection.updateOne(query,update);
+    res.send(result)
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ error: 'Property not found' });
+    }
+
+  }catch(error){
+    console.error('Error Updating Property:', error);
+    res.status(500).send({ error: 'Failed to update property' });
+  }
+})
+
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
