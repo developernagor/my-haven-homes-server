@@ -43,6 +43,7 @@ async function run() {
     const reviewsCollection = db.collection('reviews')
     const propertiesCollection = db.collection('properties')
     const usersCollection = db.collection('users')
+    const messageCollection = db.collection('user-message')
 
     // Save or update an user in db
     app.post('/users/:email', async(req,res)=>{
@@ -111,6 +112,15 @@ async function run() {
           res.status(500).send({ message: 'Error adding to wishlist', error });
       }
   });
+    app.post('/user-message', async (req, res) => {
+      const message = req.body;
+      try {
+          const result = await messageCollection.insertOne(message);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ message: 'Error adding to user-message', error });
+      }
+  });
 
 
   app.post('/reviews', async (req, res) => {
@@ -121,6 +131,16 @@ async function run() {
     } catch (error) {
         res.status(500).send({ message: 'Error adding review', error });
     }
+});
+
+app.get('/reviews', async (req, res) => {
+  
+  try {
+      const result = await reviewsCollection.find().toArray();
+      res.send(result);
+  } catch (error) {
+      res.status(500).send({ message: 'Error fetching reviews', error });
+  }
 });
 
   app.get('/reviews/:propertyId', async (req, res) => {
