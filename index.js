@@ -215,6 +215,20 @@ app.get('/reviews', async (req, res) => {
     }
 });
 
+app.delete('/reviews/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await reviewsCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.status(200).send({ message: 'Review deleted successfully.' });
+    } else {
+      res.status(404).send({ message: 'Review not found.' });
+    }
+  } catch (error) {
+    res.status(500).send({ message: 'Error deleting review.', error });
+  }
+});
+
 // Update property
 app.patch('/dashboard/update-property/:id', async(req,res)=>{
   const id= req.params.id;
