@@ -101,6 +101,41 @@ async function run() {
       const result = await userCollection.updateOne(filterId,updateDoc);
       res.send(result)
     })
+    app.patch('/users/fraud/:id', async(req,res)=>{
+      const id = req.params.id;
+      const user = req.body;
+      const filterId = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set:{
+          role: 'fraud'
+        }
+      }
+      const result = await userCollection.updateOne(filterId,updateDoc);
+
+      if (result.modifiedCount > 0) {
+        const user = await userCollection.findOne(filterId)
+        if (user) {
+          const propertiesDeleteResult = await propertiesCollection.deleteMany({ agentEmail: user.email });
+          res.send({
+            message: `${propertiesDeleteResult.deletedCount} properties deleted and user marked as fraud.`,
+            result,
+            propertiesDeleteResult,
+          });
+        } else {
+          res.status(404).send({ message: 'User not found.' });
+        }
+      } else {
+        res.status(400).send({ message: 'Failed to mark user as fraud or user not found.' });
+      }
+    });
+
+    // Delete an user
+    app.delete('/users/:id', async(req,res)=>{
+      const id=req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result  = await userCollection.deleteOne(query)
+      res.send(result)
+    })
 
     // Get Property data from db
     app.get('/properties', async(req,res) => {
