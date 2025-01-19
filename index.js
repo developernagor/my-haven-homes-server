@@ -265,6 +265,76 @@ app.get('/update-property/:id', async(req,res) => {
   res.send(result)
 })
 
+// Verify Property - PATCH request
+app.patch('/properties/verify/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const property = await propertiesCollection.findOne({ _id: new ObjectId(id) });
+    if (!property) {
+      return res.status(404).send({ message: 'Property not found' });
+    }
+
+    // Update the property status to "verified"
+    const result = await propertiesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: { status: 'verified' }
+      }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.send({ message: 'Property verified successfully', property });
+    } else {
+      res.status(400).send({ message: 'Failed to verify property' });
+    }
+  } catch (error) {
+    res.status(500).send({ message: 'Error verifying property', error });
+  }
+});
+
+
+// Reject Property - PATCH request
+app.patch('/properties/reject/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const property = await propertiesCollection.findOne({ _id: new ObjectId(id) });
+    if (!property) {
+      return res.status(404).send({ message: 'Property not found' });
+    }
+
+    // Update the property status to "rejected"
+    const result = await propertiesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: { status: 'rejected' }
+      }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.send({ message: 'Property rejected successfully', property });
+    } else {
+      res.status(400).send({ message: 'Failed to reject property' });
+    }
+  } catch (error) {
+    res.status(500).send({ message: 'Error rejecting property', error });
+  }
+});
+
+
+// Get all properties with statuses - GET request
+app.get('/properties/status/verified', async (req, res) => {
+  try {
+    const result = await propertiesCollection.find().toArray();
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: 'Error fetching properties', error });
+  }
+});
+
+
+
 
 // Delete Property
 app.delete('/properties/:id', async (req, res) => {
