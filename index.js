@@ -42,7 +42,7 @@ async function run() {
     const advertisementsCollection = db.collection('advertisements')
     const reviewsCollection = db.collection('reviews')
     const propertiesCollection = db.collection('properties')
-    const usersCollection = db.collection('users')
+    const userCollection = db.collection('users')
     const messageCollection = db.collection('user-message')
 
     // Save or update an user in db
@@ -50,11 +50,11 @@ async function run() {
       const email = req.params.email;
     const query = {email}
     const user = req.body;
-    const isExist =await usersCollection.findOne(query)
+    const isExist =await userCollection.findOne(query)
     if(isExist) {
       return res.send(isExist)
     }
-    const result = await usersCollection.insertOne({
+    const result = await userCollection.insertOne({
       ...user,
       role: 'customer',
       timestamp: Date.now()
@@ -64,7 +64,7 @@ async function run() {
 
      // Get users data from db
      app.get('/users', async(req,res) => {
-      const result = await usersCollection.find().toArray();
+      const result = await userCollection.find().toArray();
       res.send(result)
     })
 
@@ -72,6 +72,33 @@ async function run() {
     app.post('/properties', async(req,res) => {
       const property = req.body;
       const result = await propertiesCollection.insertOne(property)
+      res.send(result)
+    })
+
+    // Make Admin APIs
+    app.patch('/users/admin/:id', async(req,res)=>{
+      const id = req.params.id;
+      const user = req.body;
+      const filter = {_id: new ObjectId(id)}
+      const update = {
+        $set:{
+          role: 'admin'
+        }
+      }
+      const result = await userCollection.updateOne(filter,update);
+      res.send(result)
+    })
+    // Make Agent APIs
+    app.patch('/users/agent/:id', async(req,res)=>{
+      const id = req.params.id;
+      const user = req.body;
+      const filterId = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set:{
+          role: 'agent'
+        }
+      }
+      const result = await userCollection.updateOne(filterId,updateDoc);
       res.send(result)
     })
 
@@ -87,7 +114,6 @@ async function run() {
       const result = await propertiesCollection.find(query).toArray()
       res.send(result)
     })
-
 
     // Get property by ID
     app.get('/all-properties/:id', async(req,res)=>{
