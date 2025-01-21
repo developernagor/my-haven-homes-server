@@ -198,6 +198,55 @@ async function run() {
     const result = await offerCollection.find().toArray();
     res.send(result)
   })
+
+  // Update Accept Offer
+app.patch('/offers-accepted/:id', async(req,res)=>{
+  const id= req.params.id;
+  const offer = req.body;
+  const query = {_id: new ObjectId(id)};
+
+  const update = {
+    $set: {
+      status: 'accepted'
+    }
+  }
+  try{
+    const result = await offerCollection.updateOne(query,update);
+    res.send(result)
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ error: 'Property not found' });
+    }
+
+  }catch(error){
+    console.error('Error Updating Property:', error);
+    res.status(500).send({ error: 'Failed to update property' });
+  }
+})
+  // Update Reject Offer
+app.patch('/offers-rejected/:id', async(req,res)=>{
+  const id= req.params.id;
+  const offer = req.body;
+  const query = {_id: new ObjectId(id)};
+
+  const update = {
+    $set: {
+      status: 'rejected'
+    }
+  }
+  try{
+    const result = await offerCollection.updateOne(query,update);
+    res.send(result)
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ error: 'Property not found' });
+    }
+
+  }catch(error){
+    console.error('Error Updating Property:', error);
+    res.status(500).send({ error: 'Failed to update property' });
+  }
+})
     app.post('/advertisements', async (req, res) => {
       const advertisement = req.body;
       try {
