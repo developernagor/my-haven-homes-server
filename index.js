@@ -39,11 +39,13 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const db = client.db('havenHomesDB');
-    const advertisementsCollection = db.collection('advertisements')
+    const advertisementCollection = db.collection('advertisements')
     const reviewsCollection = db.collection('reviews')
     const propertiesCollection = db.collection('properties')
     const userCollection = db.collection('users')
     const messageCollection = db.collection('user-message')
+    const wishlistCollection = db.collection('wishlists')
+    const offerCollection = db.collection('offers')
 
     // Save or update an user in db
     app.post('/users/:email', async(req,res)=>{
@@ -167,12 +169,49 @@ async function run() {
     app.post('/wishlist', async (req, res) => {
       const wishlistItem = req.body;
       try {
-          const result = await db.collection('wishlist').insertOne(wishlistItem);
+          const result = await wishlistCollection.insertOne(wishlistItem);
           res.send(result);
       } catch (error) {
           res.status(500).send({ message: 'Error adding to wishlist', error });
       }
   });
+
+  app.get('/wishlist/:email', async(req,res) => {
+    const email = req.params.email;
+    const query = {userEmail: email}
+    const result = await wishlistCollection.find(query).toArray();
+    res.send(result)
+  })
+
+
+    app.post('/offers', async (req, res) => {
+      const offer = req.body;
+      try {
+          const result = await offerCollection.insertOne(offer);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ message: 'Error adding to offer', error });
+      }
+  });
+
+  app.get('/offers', async(req,res)=>{
+    const result = await offerCollection.find().toArray();
+    res.send(result)
+  })
+    app.post('/advertisements', async (req, res) => {
+      const advertisement = req.body;
+      try {
+          const result = await advertisementCollection.insertOne(advertisement);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ message: 'Error adding to advertisement', error });
+      }
+  });
+
+  app.get('/advertisements', async(req,res) => {
+    const result = await advertisementCollection.find().toArray();
+    res.send(result)
+  })
     app.post('/user-message', async (req, res) => {
       const message = req.body;
       try {
@@ -332,6 +371,12 @@ app.get('/properties/status/verified', async (req, res) => {
     res.status(500).send({ message: 'Error fetching properties', error });
   }
 });
+
+app.get('/admin/properties/:status', async(req,res) => {
+  const query = {status: "verified"};
+  const result = await propertiesCollection.find(query).toArray();
+  res.send(result)
+})
 
 
 
