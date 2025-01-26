@@ -1,6 +1,7 @@
 
 const express = require('express');
 const cors = require('cors');
+
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
@@ -13,7 +14,10 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors(
     {
-        origin: ['http://localhost:5173'], //replace with client address
+        origin: ['http://localhost:5173',
+          'https://rococo-malabi-8b6a55.netlify.app',
+          'https://my-haven-homes.netlify.app',
+        ], //replace with client address
         credentials: true,
     }
 )); 
@@ -69,6 +73,21 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result)
     })
+
+    // Get agent 
+    app.get('/users/agent', async (req, res) => {
+      const query = { role: 'agent' }; // Match users where the role is 'agent'
+    
+      try {
+        const result = await userCollection.find(query).toArray(); // Await the query result
+        res.send(result); // Send the matched users to the client
+      } catch (error) {
+        console.error('Error fetching agent users:', error);
+        res.status(500).send({ message: 'Failed to fetch agent users' });
+      }
+    });
+    
+    
 
     // Save Property Data in db
     app.post('/properties', async(req,res) => {
@@ -184,6 +203,7 @@ async function run() {
   })
 
 
+  
     app.post('/offers', async (req, res) => {
       const offer = req.body;
       try {
@@ -194,10 +214,26 @@ async function run() {
       }
   });
 
-  app.get('/offers', async(req,res)=>{
+  app.get('/offers', async(req, res) => {
     const result = await offerCollection.find().toArray();
-    res.send(result)
-  })
+      res.send(result);
+  });
+  
+
+  app.get('/offers/:email', async (req, res) => {
+    const email = req.params.email;
+    if (!email) {
+      return res.status(400).send({ error: 'Email is required' });
+    }
+    const query = {'buyer.email': email };
+    try {
+      const result = await offerCollection.find(query).toArray();
+      res.send(result);
+    } catch (err) {
+      res.status(500).send({ error: 'Failed to fetch offers' });
+    }
+  });
+  
 
   // Update Accept Offer
 app.patch('/offers-accepted/:id', async(req,res)=>{
@@ -292,9 +328,19 @@ app.get('/reviews', async (req, res) => {
   }
 });
 
-  app.get('/reviews/:propertyId', async (req, res) => {
-    const propertyId = req.params.propertyId;
-    const query = {propertyId}
+  app.get('/reviews/:email', async (req, res) => {
+    const email = req.params.email;
+    const query = {reviewerEmail: email}
+    try {
+        const result = await reviewsCollection.find(query).toArray();
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: 'Error fetching reviews', error });
+    }
+});
+  app.get('/reviews/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = {propertyId: id}
     try {
         const result = await reviewsCollection.find(query).toArray();
         res.send(result);
@@ -314,6 +360,21 @@ app.delete('/reviews/:id', async (req, res) => {
     }
   } catch (error) {
     res.status(500).send({ message: 'Error deleting review.', error });
+  }
+});
+
+// Delete wishlist data by id
+app.delete('/wishlist/remove/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await wishlistCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.status(200).send({ message: 'Wishlist deleted successfully.' });
+    } else {
+      res.status(404).send({ message: 'Wishlist not found.' });
+    }
+  } catch (error) {
+    res.status(500).send({ message: 'Error deleting wishlist.', error });
   }
 });
 
@@ -427,6 +488,13 @@ app.get('/admin/properties/:status', async(req,res) => {
   res.send(result)
 })
 
+// Get all sold properties
+app.get('/agent/properties/:status', async(req,res) => {
+  const query = {status: "accepted"};
+  const result = await propertiesCollection.find(query).toArray();
+  res.send(result)
+})
+
 
 
 
@@ -445,12 +513,70 @@ app.delete('/properties/:id', async (req, res) => {
   }
 });
 
+// Create payment intent
+
+app.post('/create-payment-intent', async (req, res) => {
+  const { propertyId } = req.body;
+  const property = await propertiesCollection.findOne({ _id: new ObjectId(propertyId) });
+  
+  if (!property) {
+    return res.status(400).send({ message: 'Property Not Found' });
+  }
+  
+  const totalPrice = property.price * 100; // Stripe expects price in cents
+  
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalPrice,
+      currency: 'usd',
+      metadata: { propertyId }
+    });
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    res.status(500).send({ message: 'Error creating payment intent', error });
+  }
+});
+
+// API route to update offer status
+app.put('/update-status/:offerId', async (req, res) => {
+  const { offerId } = req.params;
+  const { status, transactionId } = req.body;
+
+  try {
+    const offer = await offerCollection.findOne({ _id: new ObjectId(offerId) });
+    if (!offer) {
+      return res.status(404).send({ message: 'Property not found' });
+    }
+
+    const updatedOffer = await offerCollection.updateOne(
+      { _id: new ObjectId(offerId) },
+      {
+        $set: {
+          status,
+          transactionId, // Save the Stripe transaction ID
+        },
+      }
+    );
+
+    if (updatedOffer.matchedCount === 0) {
+      return res.status(404).json({ message: 'Offer not found' });
+    }
+
+    res.status(200).json({ message: 'Offer status updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error updating offer status', error });
+  }
+});
+
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
