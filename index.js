@@ -15,6 +15,7 @@ app.use(express.json());
 app.use(cors(
     {
         origin: ['http://localhost:5173',
+          'http://localhost:5174',
           'https://rococo-malabi-8b6a55.netlify.app',
           'https://my-haven-homes.netlify.app',
         ], //replace with client address
@@ -487,6 +488,11 @@ app.get('/admin/properties/:status', async(req,res) => {
   const result = await propertiesCollection.find(query).toArray();
   res.send(result)
 })
+app.get('/agent/offers/:status', async(req,res) => {
+  const query = {status: "bought"};
+  const result = await offerCollection.find(query).toArray();
+  res.send(result)
+})
 
 // Get all sold properties
 app.get('/agent/properties/:status', async(req,res) => {
@@ -516,7 +522,7 @@ app.delete('/properties/:id', async (req, res) => {
 // Create payment intent
 
 app.post('/create-payment-intent', async (req, res) => {
-  const { propertyId } = req.body;
+  const amount = req.body;
   const property = await propertiesCollection.findOne({ _id: new ObjectId(propertyId) });
   
   if (!property) {
